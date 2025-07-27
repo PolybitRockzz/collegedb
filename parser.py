@@ -3,6 +3,8 @@ import os
 import json
 from datetime import datetime
 import subprocess
+from pdf2image import convert_from_path
+from parser_utils import run_image_parser
 
 def get_last_ran_parser():
     settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
@@ -95,8 +97,36 @@ def main():
             "Select Ollama Linter Model:", available_models, index=idx_lint
         )
 
-    # Dummy parse button
-    st.button("Parse Files (Dummy)")
+    # Parse Files button
+    if st.button("Parse Files"):
+        # Process each PDF file for parsing
+        with st.expander("View Logs", expanded=True):
+            temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            for f in files_to_parse:
+                if f['name'].lower().endswith('.pdf'):
+                    pdf_path = os.path.join(notes_dir, f['name'])
+                    # Convert PDF pages to JPEG images
+                    pages = convert_from_path(pdf_path)
+                    st.write(f"Processing PDF: {f['name']} with {len(pages)} pages")
+                    for idx, page in enumerate(pages):
+                        img_name = f"{os.path.splitext(f['name'])[0]}_page{idx}.jpg"
+                        img_path = os.path.join(temp_dir, img_name)
+                        page.save(img_path, 'JPEG')
+                        # Run vision parser and generate markdown
+                        vision_model = selected_vision or default_model or ""
+                        md_path = run_image_parser(img_path, vision_model)
+                        st.write(f"Generated markdown: {md_path}")
+                        # Remove temporary image
+                        os.remove(img_path)
+        # Update last ran parser timestamp
+        settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
+        with open(settings_path, 'r+') as sf:
+            settings = json.load(sf)
+            settings['last_ran_parser'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            sf.seek(0)
+            json.dump(settings, sf, indent=4)
+            sf.truncate()
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,8 @@
+Split the following markdown content into chapters and subchapters.
+Return a JSON array of objects with keys "filename" and "content".
+
+- "filename": a safe filename (no extension) derived from chapter or subchapter titles.
+- "content": the markdown content for that chapter/subchapter.
+
+Place the markdown content below, replacing the placeholder.
+<<CONTENT>>

@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 import subprocess
 from pdf2image import convert_from_path
-from parser_utils import run_image_parser
+from parser_utils import run_image_parser, run_markdown_linter
 
 def get_last_ran_parser():
     settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
@@ -119,6 +119,16 @@ def main():
                         st.write(f"Generated markdown: {md_path}")
                         # Remove temporary image
                         os.remove(img_path)
+        # Lint the generated markdown files
+        with st.expander("Lint Markdown", expanded=True):
+            for f in files_to_parse:
+                if f['name'].lower().endswith('.pdf'):
+                    pdf_base = os.path.splitext(f['name'])[0]
+                    linter_model = selected_linter or default_model or ""
+                    created = run_markdown_linter(pdf_base, temp_dir, linter_model)
+                    st.write(f"Created {len(created)} chapter files for {f['name']}")
+                    for cf in created:
+                        st.write(cf)
         # Update last ran parser timestamp
         settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
         with open(settings_path, 'r+') as sf:
